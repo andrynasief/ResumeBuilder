@@ -81,3 +81,33 @@ textarea {
   color: #2c7a2c;
   font-weight: 500;
 }
+.bin-form {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.bin-entry {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin: 0 0 16px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.bin-entry button {
+  margin-top: 12px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+@media (max-width: 500px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
