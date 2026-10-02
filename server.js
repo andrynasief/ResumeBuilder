@@ -6,6 +6,7 @@ const express = require( 'express' ),
       { MongoClient, ObjectId } = require( 'mongodb' )
 
 require( 'dotenv' ).config()
+const resumeRoutes = require('./resume-routes')
 
 app.use( express.json() )
 app.use( session({
@@ -24,6 +25,7 @@ const connectToDatabase = async function() {
   db = client.db( 'resumeBuilder' )
   usersCollection = db.collection( 'users' )
   resumesCollection = db.collection( 'resumes' )
+  app.use('/api/resumes', requireLogin, resumeRoutes(db.collection('resumeVersions')))
   console.log( 'Connected to MongoDB' )
 }
 
@@ -100,7 +102,8 @@ app.get( '/api/resume', requireLogin, async function( request, response ) {
 })
 
 app.post( '/api/resume', requireLogin, async function( request, response ) {
-  const data = request.body
+  const fields = ['personalInfo', 'professionalSummary', 'education', 'workExperience', 'projects', 'activities', 'skills', 'accomplishments']
+  const data = Object.fromEntries(fields.filter(key => request.body?.[key] !== undefined).map(key => [key, request.body[key]]))
 
   await resumesCollection.updateOne(
     { userId: request.session.userId },
@@ -114,7 +117,7 @@ app.post( '/api/resume', requireLogin, async function( request, response ) {
 
 app.use( express.static( 'client/dist' ) )
 
-app.get( '/', function( request, response ) {
+app.get( ['/', '/account', '/resume'], function( request, response ) {
   response.sendFile( __dirname + '/client/dist/index.html' )
 })
 

@@ -111,3 +111,66 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+.resume-builder {
+  padding: 28px;
+  text-align: left;
+  color-scheme: light;
+  color: #2b2b2b;
+}
+
+.builder-heading, .preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.builder-heading h1 {
+  font-size: 36px;
+  color: #33474d;
+  margin: 0 0 12px;
+}
+
+.builder-heading a { flex-shrink: 0; color: #33474d; }
+.builder-layout { display: grid; grid-template-columns: minmax(250px, 0.8fr) minmax(0, 1.4fr); gap: 24px; align-items: start; }
+.builder-selections .section { padding: 18px; }
+.resume-choice { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; cursor: pointer; border-bottom: 1px solid #eee; }
+.resume-choice:last-child { border-bottom: 0; }
+.resume-choice input { margin-top: 5px; accent-color: #33474d; flex-shrink: 0; width: 17px; height: 17px; }
+.resume-choice span { min-width: 0; overflow-wrap: anywhere; }
+.resume-choice strong, .resume-choice small { display: block; }
+.resume-choice small, .empty-bin, .preview-note { color: #60686b; font-size: 13px; line-height: 1.5; }
+.preview-panel { position: sticky; top: 20px; background: #e5e8e7; border: 1px solid #d4dbd8; border-radius: 10px; padding: 18px; }
+.preview-toolbar { margin-bottom: 10px; flex-wrap: wrap; gap: 12px; }
+.preview-toolbar h2 { color: #33474d; }
+.preview-toolbar p, .preview-status { font-size: 13px; }
+.preview-toolbar a { text-decoration: none; font-size: 13px; padding: 9px 14px; }
+.preview-status { margin-bottom: 12px; }
+.preview-placeholder { display: grid; place-items: center; text-align: center; padding: 24px; min-height: 420px; background: white; color: #60686b; }
+.preview-note { margin-top: 12px; }
+
+@media (max-width: 800px) {
+  .resume-builder { padding: 18px; }
+  .builder-heading { align-items: flex-start; flex-direction: column; }
+  .builder-layout { grid-template-columns: 1fr; }
+  .preview-panel { position: static; }
+}
+
+.pdf-pages { max-height: 70vh; overflow-y: auto; overflow-x: hidden; }
+.pdf-pages canvas { display: block; width: 100%; height: auto; background: white; margin-bottom: 16px; box-shadow: 0 2px 5px #0002; }
+.resume-actions { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 0 0 24px; }
+.resume-actions label { display: grid; gap: 6px; flex: 1; min-width: 180px; }
+.resume-actions input, .resume-edit input { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #b9c3c1; border-radius: 6px; font: inherit; }
+.resume-actions span { font-size: 13px; align-self: center; }
+.resume-list { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.resume-card { display: flex; align-items: center; gap: 16px; padding: 10px 14px; border: 1px solid #d4dbd8; border-radius: 6px; min-width: 0; }
+.resume-card button { border: 0; background: transparent; font: inherit; color: #33474d; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+.resume-card button[aria-current] { font-weight: 700; text-decoration: underline; }
+.resume-card a { font-size: 13px; color: #33474d; overflow-wrap: anywhere; }
+.resume-edit { margin: 0 0 12px 27px; font-size: 13px; }
+.resume-edit summary { cursor: pointer; color: #33474d; margin-bottom: 8px; }
+.resume-edit label { display: grid; gap: 4px; margin-top: 8px; text-transform: capitalize; }
+.resume-edit textarea { text-transform: none; }
+button:disabled { opacity: 0.6; cursor: default; }

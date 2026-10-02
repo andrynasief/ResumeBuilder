@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import SavedResumes from '../components/SavedResumes'
 import PersonalInfo from '../components/PersonalInfo'
 import ProfessionalSummary from '../components/ProfessionalSummary'
 import WorkExperience from '../components/WorkExperience'
 import Projects from '../components/Projects'
 import Activities from '../components/Activities'
+
+import Education from '../components/Education'
+
+import Skills from '../components/Skills'
+
+import Accomplishments from '../components/Accomplishments'
 
 function Account() {
   const [personalInfo, setPersonalInfo] = useState({})
@@ -12,6 +19,9 @@ function Account() {
   const [workExperience, setWorkExperience] = useState([])
   const [projects, setProjects] = useState([])
   const [activities, setActivities] = useState([])
+  const [education, setEducation] = useState([])
+  const [skills, setSkills] = useState([])
+  const [accomplishments, setAccomplishments] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState('Loading...')
@@ -27,6 +37,9 @@ function Account() {
         setWorkExperience(data.workExperience || [])
         setProjects(data.projects || [])
         setActivities(data.activities || [])
+        setEducation(data.education || [])
+        setSkills(data.skills || [])
+        setAccomplishments(data.accomplishments || [])
         setLoaded(true)
         setStatus('')
       } catch {
@@ -43,7 +56,7 @@ function Account() {
       const response = await fetch('/api/resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personalInfo, professionalSummary, workExperience, projects, activities })
+        body: JSON.stringify({ personalInfo, professionalSummary, workExperience, projects, activities, education, skills, accomplishments })
       })
       if (!response.ok) throw new Error()
       setStatus('Saved!')
@@ -57,6 +70,7 @@ function Account() {
   return (
     <div className="container">
       <h1>Account</h1>
+      <SavedResumes />
       <p>Add your information here, then save your bins before building a resume.</p>
       <fieldset className="bin-form" disabled={!loaded || saving}>
         <PersonalInfo data={personalInfo} onChange={setPersonalInfo} />
@@ -64,6 +78,9 @@ function Account() {
         <WorkExperience data={workExperience} onChange={setWorkExperience} />
         <Projects data={projects} onChange={setProjects} />
         <Activities data={activities} onChange={setActivities} />
+        <Education data={education} onChange={setEducation} />
+        <Skills data={skills} onChange={setSkills} />
+        <Accomplishments data={accomplishments} onChange={setAccomplishments} />
         <button className="save-btn" onClick={handleSave}>Save Information</button>
       </fieldset>
       <p role="status">{status}</p>
