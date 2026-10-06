@@ -1,3 +1,12 @@
+function AppStyles() {
+  return <style>{`
+  :root { font: 18px/145% system-ui, sans-serif; color-scheme: light; }
+  #root { width: 1126px; max-width: 100%; margin: 0 auto; text-align: center; min-height: 100svh; box-sizing: border-box; }
+  h1, h2 { font-weight: 500; }
+  h1 { font-size: 56px; letter-spacing: -1.68px; margin: 32px 0; }
+  h2 { font-size: 24px; line-height: 118%; letter-spacing: -.24px; margin: 0 0 8px; }
+  p { margin: 0; }
+  @media (max-width: 1024px) { :root { font-size: 16px; } h1 { font-size: 36px; margin: 20px 0; } h2 { font-size: 20px; } }
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
@@ -174,3 +183,39 @@ textarea {
 .resume-edit label { display: grid; gap: 4px; margin-top: 8px; text-transform: capitalize; }
 .resume-edit textarea { text-transform: none; }
 button:disabled { opacity: 0.6; cursor: default; }
+
+  .navbar { align-items: center; flex-wrap: wrap; }
+  .navbar a[aria-current=page] { text-decoration: underline; }
+  .container { box-sizing: border-box; width: 100%; }
+  .field-label { display: grid; gap: 6px; }
+  .login-form { display: grid; gap: 16px; max-width: 420px; margin: 0 auto 16px; text-align: left; }
+  .login-form label { display: grid; gap: 6px; }
+  .login-form input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font: inherit; width: 100%; box-sizing: border-box; background: white; color: #2b2b2b; }
+  .section-intro { margin: 20px 0; }
+  .month-year { border: 0; padding: 0; margin: 0; min-width: 0; grid-column: 1 / -1; text-align: left; }
+  .month-year legend { padding: 0; margin-bottom: 6px; color: inherit; font-size: inherit; }
+  .month-year-fields { display: flex; align-items: end; gap: 10px; }
+  .month-year-fields label { flex: 1; min-width: 0; }
+  .month-year-fields button { margin: 0; }
+  .month-year small { font-size: 13px; }
+  .pdf-controls { margin: 16px 0; padding: 16px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; }
+  .pdf-controls h3 { margin: 0; }
+  .pdf-controls fieldset { display: flex; gap: 24px; margin: 8px 0 0; flex-wrap: wrap; border: 0; padding: 0; }
+  .pdf-controls label { display: flex; align-items: center; gap: 8px; }
+  .pdf-controls select { width: auto; }
+  .section-group { margin-bottom: 16px; }
+  .section-group[data-hidden=true] .section { opacity: .6; }
+  .section-tools { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px; }
+  .section-tools button { padding: 3px 7px; font-size: 13px; cursor: pointer; }
+  .section-tools button[aria-pressed=true] { background: #ddd; }
+  .preview-panel { min-width: 0; }
+  :focus-visible { outline: 2px solid #33474d; outline-offset: 3px; }
+  .navbar :focus-visible { outline-color: white; }
+  .skip-link { position: absolute; top: -100px; background: white; padding: 10px; z-index: 10; }
+  .skip-link:focus { top: 10px; }
+  [role=alert] { color: #a12d2d; }
+  @media (max-width: 500px) { .navbar { gap: 12px; } .pdf-controls label { flex-wrap: wrap; } }
+  `}</style>
+}
+
+export default AppStyles

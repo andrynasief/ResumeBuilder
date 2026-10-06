@@ -25,3 +25,10 @@ export const mergeContent = (library, content) => ({
   professionalSummary: { ...library.professionalSummary, ...content.professionalSummary },
   ...Object.fromEntries(bins.map(([key]) => [key, [...new Map([...(library[key] || []), ...(content[key] || [])].map(item => [item.id, item])).values()]]))
 })
+
+export const defaultStyles = {
+  fontSize: '10pt', spacing: 'normal',
+  sectionOrder: ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments'],
+  hideSections: []
+}
+export const monthValue = value => typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(value) ? value.slice(0, 7) : value

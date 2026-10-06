@@ -1,3 +1,5 @@
+import MonthYearPicker from './MonthYearPicker'
+
 function Education({ data, onChange }) {
   const handleChange = (id, field, value) =>
     onChange(data.map(item => item.id === id ? { ...item, [field]: value } : item))
@@ -63,14 +65,7 @@ function Education({ data, onChange }) {
               />
             </label>
 
-            <label>
-              Graduation Year
-              <input
-                type="text"
-                value={item.gradYear || ''}
-                onChange={(e) => handleChange(item.id, 'gradYear', e.target.value)}
-              />
-            </label>
+            <MonthYearPicker label="Graduation date" value={item.gradYear || ''} onChange={value => handleChange(item.id, 'gradYear', value)} />
           </div>
 
           <button

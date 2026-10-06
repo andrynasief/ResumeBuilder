@@ -1,3 +1,5 @@
+import MonthYearPicker from './MonthYearPicker'
+
 function Projects({ data, onChange }) {
   const handleChange = (id, field, value) =>
     onChange(data.map(item => item.id === id ? { ...item, [field]: value } : item))
@@ -17,10 +19,7 @@ function Projects({ data, onChange }) {
                 Description
                 <textarea rows="4" value={item.description || ''} onChange={(e) => handleChange(item.id, 'description', e.target.value)} />
               </label>
-              <label>
-                Date
-                <input type="date" value={item.date || ''} onChange={(e) => handleChange(item.id, 'date', e.target.value)} />
-              </label>
+              <MonthYearPicker label="Project date" value={item.date || ''} onChange={value => handleChange(item.id, 'date', value)} />
           </div>
           <button type="button" onClick={() => onChange(data.filter(entry => entry.id !== item.id))}>Remove Project</button>
         </fieldset>

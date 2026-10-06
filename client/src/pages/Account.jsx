@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { monthValue } from '../resume-data'
 import SavedResumes from '../components/SavedResumes'
 import PersonalInfo from '../components/PersonalInfo'
 import ProfessionalSummary from '../components/ProfessionalSummary'
 import WorkExperience from '../components/WorkExperience'
 import Projects from '../components/Projects'
 import Activities from '../components/Activities'
-
 import Education from '../components/Education'
-
 import Skills from '../components/Skills'
-
 import Accomplishments from '../components/Accomplishments'
 
 function Account() {
@@ -35,11 +33,11 @@ function Account() {
         setPersonalInfo(data.personalInfo || {})
         setProfessionalSummary(data.professionalSummary || {})
         setWorkExperience(data.workExperience || [])
-        setProjects(data.projects || [])
+        setProjects((data.projects || []).map(item => ({ ...item, date: monthValue(item.date) || '' })))
         setActivities(data.activities || [])
-        setEducation(data.education || [])
+        setEducation((data.education || []).map(item => ({ ...item, gradYear: monthValue(item.gradYear) || '' })))
         setSkills(data.skills || [])
-        setAccomplishments(data.accomplishments || [])
+        setAccomplishments((data.accomplishments || []).map(item => ({ ...item, date: monthValue(item.date) || '' })))
         setLoaded(true)
         setStatus('')
       } catch {
@@ -49,7 +47,8 @@ function Account() {
     load()
   }, [])
 
-  const handleSave = async () => {
+  const handleSave = async event => {
+    event.preventDefault()
     setSaving(true)
     setStatus('Saving...')
     try {
@@ -68,24 +67,26 @@ function Account() {
   }
 
   return (
-    <div className="container">
+    <main className="container">
       <h1>Account</h1>
       <SavedResumes />
-      <p>Add your information here, then save your bins before building a resume.</p>
+      <p className="section-intro">Add your information here, then save your bins before building a resume.</p>
+      <form onSubmit={handleSave}>
       <fieldset className="bin-form" disabled={!loaded || saving}>
         <PersonalInfo data={personalInfo} onChange={setPersonalInfo} />
         <ProfessionalSummary data={professionalSummary} onChange={setProfessionalSummary} />
+        <Education data={education} onChange={setEducation} />
         <WorkExperience data={workExperience} onChange={setWorkExperience} />
         <Projects data={projects} onChange={setProjects} />
         <Activities data={activities} onChange={setActivities} />
-        <Education data={education} onChange={setEducation} />
         <Skills data={skills} onChange={setSkills} />
         <Accomplishments data={accomplishments} onChange={setAccomplishments} />
-        <button className="save-btn" onClick={handleSave}>Save Information</button>
+        <button className="save-btn" type="submit">{saving ? 'Saving...' : 'Save Information'}</button>
       </fieldset>
+      </form>
       <p role="status">{status}</p>
       <Link to="/resume">Build a Resume</Link>
-    </div>
+    </main>
   )
 }
 

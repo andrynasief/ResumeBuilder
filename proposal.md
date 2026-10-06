@@ -3,6 +3,7 @@
 Andry Nasief
 Austin Peterson
 Aidan Fisher
+Aishwarya Silam
 
 ## Project Idea:
 ### Resume Builder...

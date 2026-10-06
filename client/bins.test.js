@@ -29,7 +29,24 @@ try {
     assert.equal(updated.length, 1)
     assert.ok(updated[0].id)
   }
-  console.log('All bins passed add, edit, and remove checks.')
+  const { default: Picker } = await server.ssrLoadModule('/src/components/MonthYearPicker.jsx')
+  let date = ''
+  const picker = () => elements(Picker({ label: 'Project date', value: date, onChange: value => { date = value } }))
+  picker().find(node => node.props?.['aria-label'] === 'Project date month').props.onChange({ target: { value: '06' } })
+  assert.equal(date, '-06')
+  assert.ok(picker().find(node => node.props?.['aria-label'] === 'Project date year').props.required)
+  picker().find(node => node.props?.['aria-label'] === 'Project date year').props.onChange({ target: { value: '2027' } })
+  assert.equal(date, '2027-06')
+  date = '2024-03-18'
+  assert.equal(picker().find(node => node.props?.['aria-label'] === 'Project date month').props.value, '03')
+  date = '2027'
+  assert.equal(picker().find(node => node.props?.['aria-label'] === 'Project date year').props.value, '2027')
+  picker().find(node => node.type === 'button').props.onClick()
+  assert.equal(date, '')
+  const { monthValue } = await server.ssrLoadModule('/src/resume-data.js')
+  assert.equal(monthValue('2024-03-18'), '2024-03')
+  assert.equal(monthValue('2027'), '2027')
+  console.log('Bin editing and month/year picker checks passed.')
 } finally {
   await server.close()
 }

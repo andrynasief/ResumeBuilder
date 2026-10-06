@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 const PdfPreview = lazy(() => import('../components/PdfPreview'))
-import { bins, personalFields, hasText, entries, getSelection, selectContent, mergeContent } from '../resume-data'
+import { personalFields, defaultStyles, entries, getSelection, selectContent, mergeContent } from '../resume-data'
 
 async function request(url, options) {
   const response = await fetch(url, options)
@@ -16,12 +16,7 @@ function ResumeBuilder() {
   const [data, setData] = useState(null)
   const [selection, setSelection] = useState(null)
   const [name, setName] = useState('Untitled resume')
-  const [styles, setStyles] = useState({ 
-    fontSize: '10pt', 
-    spacing: 'normal',
-    sectionOrder: ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments'],
-    hideSections: []
-  })
+  const [styles, setStyles] = useState(defaultStyles)
   const [resumes, setResumes] = useState([])
   const [saved, setSaved] = useState('')
   const [saving, setSaving] = useState(false)
@@ -46,14 +41,14 @@ function ResumeBuilder() {
         const choices = getSelection(content)
         const available = resume ? mergeContent(library, content) : library
         const title = resume?.name || 'Untitled resume'
-        const customStyles = resume?.content?.styles || { fontSize: '10pt', spacing: 'normal' }
-        
+        const customStyles = { ...defaultStyles, ...resume?.content?.styles }
+
         setData(available)
         setSelection(choices)
         setName(title)
         setStyles(customStyles)
         setResumes(list)
-        setSaved(JSON.stringify({ name: title, content: selectContent(available, choices), styles: customStyles }))
+        setSaved(JSON.stringify({ name: title, content: { ...selectContent(available, choices), styles: customStyles } }))
         setLoadedId(resumeId)
         setLoadError('')
         setMessage('')
@@ -66,7 +61,7 @@ function ResumeBuilder() {
     return () => controller.abort()
   }, [resumeId, reload])
 
-  const content = useMemo(() => data && selection ? { 
+  const content = useMemo(() => data && selection ? {
     ...selectContent(data, selection),
     styles
   } : null, [data, selection, styles])
@@ -91,13 +86,7 @@ function ResumeBuilder() {
         const response = await fetch('/api/resumes/preview', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            ...selectContent(data, selection), 
-            styles: {
-              ...styles,
-              sectionOrder: styles.sectionOrder || ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments']
-            }
-          }), 
+          body: JSON.stringify(content),
           signal: controller.signal
         })
         if (!response.ok) throw new Error((await response.json()).error || 'Could not build the preview.')
@@ -127,19 +116,19 @@ function ResumeBuilder() {
     setData(current => ({ ...current, [key]: id ? current[key].map(item => item.id === id ? { ...item, [field]: value } : item) : { ...current[key], [field]: value } }))
   }
 
-  const moveSection =(index, direction) => {
-    const order = [...(styles.sectionOrder || ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments'])]
-    const newOrder = [...order]
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-    
-    if (targetIndex < 0 || targetIndex >= order.length) return
-    const temp = newOrder[index]
-    newOrder[index] = newOrder[targetIndex]
-    newOrder[targetIndex] = temp
-    setStyles(prev => ({
-      ...prev,
-      sectionOrder: newOrder
-    }))
+  const updateStyles = changes => {
+    setError('')
+    setMessage('')
+    setStyles(current => ({ ...current, ...changes }))
+  }
+
+  const moveSection = (index, direction) => {
+    const order = [...styles.sectionOrder]
+    const target = index + direction
+    if (target < 0 || target >= order.length) return
+    const [section] = order.splice(index, 1)
+    order.splice(target, 0, section)
+    updateStyles({ sectionOrder: order })
   }
 
   const canLeave = () => !dirty || window.confirm('Discard unsaved changes to this resume?')
@@ -156,15 +145,15 @@ function ResumeBuilder() {
     try {
       const result = await request(resumeId && !copy ? `/api/resumes/${resumeId}` : '/api/resumes', {
         method: resumeId && !copy ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: title, content: { ...content, styles } }) // <-- Explicitly include styles here!
-    })
-    setSaved(JSON.stringify({ name: result.name, content: result.content }))
-    setName(result.name)
-    setResumes(current => [result, ...current.filter(item => item._id !== result._id)])
-    setMessage('Saved.')
-    if (result._id !== resumeId) setParams({ id: result._id })
-  } catch (error) { setMessage(error.message) } finally { setSaving(false) }
-}
+        body: JSON.stringify({ name: title, content })
+      })
+      setSaved(JSON.stringify({ name: result.name, content }))
+      setName(result.name)
+      setResumes(current => [result, ...current.filter(item => item._id !== result._id)])
+      setMessage('Saved.')
+      if (result._id !== resumeId) setParams({ id: result._id })
+    } catch (error) { setMessage(error.message) } finally { setSaving(false) }
+  }
 
   const ready = loaded && count > 0 && preview?.content === content
 
@@ -214,7 +203,7 @@ function ResumeBuilder() {
   return (
     <main className="resume-builder">
       <div className="builder-heading">
-        <div><h1>Build your resume</h1><p>Choose your content, tailor the wording, and save a version for every opportunity.</p></div>
+        <h1>Resume Builder</h1>
         <Link to="/account" onClick={event => { if (!canLeave()) event.preventDefault() }}>Manage your bins</Link>
       </div>
       <section className="section saved-resumes">
@@ -234,79 +223,44 @@ function ResumeBuilder() {
           {resumeId && <button disabled={saving || !name.trim()} onClick={() => save(true)}>Save as copy</button>}
           <span role="status">{message || (dirty ? 'Unsaved changes' : resumeId ? 'Saved' : 'New draft')}</span>
         </div>
-        
-        {/* PDF Customization Toolbar */}
-        <div className="pdf-controls" style={{ margin: '1rem 0', padding: '1rem', background: '#f9f9f9', border: '1px solid #ddd', borderRadius: '6px' }}>
-          <h3>PDF Customization Options</h3>
-          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-            <label>
-              Font Size:
-              <select 
-                value={styles.fontSize} 
-                onChange={(e) => setStyles({ ...styles, fontSize: e.target.value })}
-                style={{ marginLeft: '0.5rem' }}
-              >
-                <option value="9pt">Small</option>
-                <option value="10pt">Standard</option>
-                <option value="11pt">Large</option>
-                <option value="12pt">Extra Large</option>
-              </select>
-            </label>
 
-            <label>
-              Spacing:
-              <select 
-                value={styles.spacing} 
-                onChange={(e) => setStyles({ ...styles, spacing: e.target.value })}
-                style={{ marginLeft: '0.5rem' }}
-              >
-                <option value="compact">Compact</option>
-                <option value="normal">Normal</option>
-                <option value="spacious">Spacious</option>
+        <section className="pdf-controls" aria-label="Resume layout">
+          <h3>PDF options</h3>
+          <fieldset disabled={saving}>
+            <label>Font size
+              <select aria-label="Font size" value={styles.fontSize} onChange={event => updateStyles({ fontSize: event.target.value })}>
+                <option value="9pt">Small</option><option value="10pt">Standard</option>
+                <option value="11pt">Large</option><option value="12pt">Extra large</option>
               </select>
             </label>
-          </div>
-        </div>
+            <label>Spacing
+              <select aria-label="Spacing" value={styles.spacing} onChange={event => updateStyles({ spacing: event.target.value })}>
+                <option value="compact">Compact</option><option value="normal">Normal</option><option value="spacious">Spacious</option>
+              </select>
+            </label>
+          </fieldset>
+        </section>
 
         <div className="builder-layout">
           <fieldset className="builder-selections bin-form" disabled={saving}>
-            {(styles.sectionOrder || ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments']).map((sectionKey, index, orderArray) => {
-              const isHidden = (styles.hideSections || []).includes(sectionKey)
+            <section className="section section-group">
+              <h2>Personal Info</h2>
+              {personalFields.filter(([key]) => data.personalInfo?.[key] !== undefined).map(([key, label]) => (
+                <div key={key}>
+                  <label className="resume-choice"><input type="checkbox" checked={selection.personalInfo.includes(key)} onChange={() => change('personalInfo', key)} /><span><strong>{label}</strong><small>{data.personalInfo[key]}</small></span></label>
+                  {selection.personalInfo.includes(key) && <details className="resume-edit"><summary>Edit {label.toLowerCase()}</summary><input aria-label={label} value={data.personalInfo[key]} onChange={event => edit('personalInfo', key, event.target.value)} /></details>}
+                </div>
+              ))}
+              {!selection.personalInfo.length && <p className="empty-bin">Select your contact details above, or add them on your Account page.</p>}
+            </section>
+            {styles.sectionOrder.map((sectionKey, index) => {
+              const isHidden = styles.hideSections.includes(sectionKey)
               return (
-                <div key={sectionKey} style={{ position: 'relative', marginBottom: '1rem', opacity: isHidden ? 0.5 : 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', marginBottom: '0.5rem', paddingRight: '0.5rem', zIndex: 2, position: 'relative', alignItems: 'center' }}>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        const currentHidden = styles.hiddenSections || []
-                        const newHidden = isHidden 
-                          ? currentHidden.filter(k => k !== sectionKey) 
-                          : [...currentHidden, sectionKey]
-                        setStyles(prev => ({ ...prev, hideSections: newHidden }))
-                      }}
-                      title={isHidden ? "Show section in PDF" : "Hide section from PDF"}
-                      style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', cursor: 'pointer', background: isHidden ? '#ddd' : 'transparent' }}
-                    >
-                      {isHidden ? 'Show' : 'Hide'}
-                    </button>
-                    <button 
-                      type="button" 
-                      disabled={index === 0} 
-                      onClick={() => moveSection(index, 'up')}
-                      title="Move section up"
-                      style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}
-                    >
-                      ↑ Up
-                    </button>
-                    <button 
-                      type="button" 
-                      disabled={index === orderArray.length - 1} 
-                      onClick={() => moveSection(index, 'down')}
-                      title="Move section down"
-                      style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}
-                    >
-                      ↓ Down
-                    </button>
+                <div className="section-group" data-hidden={isHidden} key={sectionKey}>
+                  <div className="section-tools" role="group" aria-label={`${sectionKey} controls`}>
+                    <button type="button" aria-pressed={isHidden} onClick={() => updateStyles({ hideSections: isHidden ? styles.hideSections.filter(key => key !== sectionKey) : [...styles.hideSections, sectionKey] })} aria-label={`${isHidden ? 'Show' : 'Hide'} ${sectionKey}`}>{isHidden ? 'Show' : 'Hide'}</button>
+                    <button type="button" disabled={index === 0} onClick={() => moveSection(index, -1)} aria-label={`Move ${sectionKey} up`}>↑ Up</button>
+                    <button type="button" disabled={index === styles.sectionOrder.length - 1} onClick={() => moveSection(index, 1)} aria-label={`Move ${sectionKey} down`}>↓ Down</button>
                   </div>
                   {renderSectionContent(sectionKey)}
                 </div>
@@ -320,7 +274,7 @@ function ResumeBuilder() {
             </div>
             <p className="preview-status" role="status">{error || (!count ? 'Select at least one item to start your resume.' : ready ? 'Preview is up to date.' : 'Building your preview...')}</p>
             {error && <button onClick={() => { setError(''); setRetry(retry + 1) }}>Retry preview</button>}
-            {ready && !error ? <Suspense fallback={<p>Loading preview...</p>}><PdfPreview key={preview.url} url={preview.url} /></Suspense> : <div className="preview-placeholder">{count ? 'Your resume will appear here.' : 'Your story starts with a selection.'}</div>}
+            {ready && !error ? <Suspense fallback={<p>Loading preview...</p>}><PdfPreview key={preview.url} url={preview.url} /></Suspense> : <div className="preview-placeholder">{count ? 'Your resume will appear here.' : 'Select information to preview your resume.'}</div>}
             <p className="preview-note">Edits here affect only this resume. Save before switching to another version.</p>
           </section>
         </div>

@@ -1,3 +1,5 @@
+import MonthYearPicker from './MonthYearPicker'
+
 function Accomplishments({ data, onChange }) {
   const handleChange = (id, field, value) =>
     onChange(data.map(item => item.id === id ? { ...item, [field]: value } : item))
@@ -27,14 +29,7 @@ function Accomplishments({ data, onChange }) {
               />
             </label>
 
-            <label>
-              Date
-              <input
-                type="text"
-                value={item.date || ''}
-                onChange={(e) => handleChange(item.id, 'date', e.target.value)}
-              />
-            </label>
+            <MonthYearPicker label="Award or certification date" value={item.date || ''} onChange={value => handleChange(item.id, 'date', value)} />
           </div>
 
           <button

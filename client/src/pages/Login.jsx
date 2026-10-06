@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 function Login({ onLogin }) {
-  const [mode, setMode] = useState('login') // 'login' or 'register'
+  const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -34,13 +34,14 @@ function Login({ onLogin }) {
   }
 
   return (
-    <div className="container">
+    <main className="container">
       <h1>{mode === 'login' ? 'Login' : 'Register'}</h1>
-      <form onSubmit={handleSubmit}>
+      <form className="login-form" onSubmit={handleSubmit}>
         <label>
           Email
           <input
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
@@ -50,6 +51,7 @@ function Login({ onLogin }) {
           Password
           <input
             type="password"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
@@ -57,14 +59,14 @@ function Login({ onLogin }) {
           />
         </label>
         {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {mode === 'login' ? 'Log In' : 'Create Account'}
+        <button className="save-btn" type="submit" disabled={submitting}>
+          {submitting ? 'Please wait...' : mode === 'login' ? 'Log In' : 'Create Account'}
         </button>
       </form>
-      <button type="button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+      <button className="text-button" disabled={submitting} type="button" onClick={() => { setError(''); setMode(mode === 'login' ? 'register' : 'login') }}>
         {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Log in'}
       </button>
-    </div>
+    </main>
   )
 }
 
