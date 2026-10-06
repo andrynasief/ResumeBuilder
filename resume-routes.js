@@ -17,6 +17,7 @@ function resumeRoutes(collection) {
       const pdf = await compileResume(content, controller.signal)
       response.type('pdf').set('Content-Disposition', 'inline; filename="resume.pdf"').send(pdf)
     } catch (error) {
+      console.error('PDF Compilation Error:', error);
       if (controller.signal.aborted) return
       response.status(503).json({ error: error.code === 'ENOENT' ? 'PDF preview is unavailable. Ask the app administrator to install XeLaTeX.' : 'Could not build the PDF. Try again or select fewer entries.' })
     }
