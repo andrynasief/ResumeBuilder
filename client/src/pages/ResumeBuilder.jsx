@@ -16,6 +16,12 @@ function ResumeBuilder() {
   const [data, setData] = useState(null)
   const [selection, setSelection] = useState(null)
   const [name, setName] = useState('Untitled resume')
+  const [styles, setStyles] = useState({ 
+    fontSize: '10pt', 
+    spacing: 'normal',
+    sectionOrder: ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments'],
+    hideSections: []
+  })
   const [resumes, setResumes] = useState([])
   const [saved, setSaved] = useState('')
   const [saving, setSaving] = useState(false)
@@ -40,11 +46,14 @@ function ResumeBuilder() {
         const choices = getSelection(content)
         const available = resume ? mergeContent(library, content) : library
         const title = resume?.name || 'Untitled resume'
+        const customStyles = resume?.content?.styles || { fontSize: '10pt', spacing: 'normal' }
+        
         setData(available)
         setSelection(choices)
         setName(title)
+        setStyles(customStyles)
         setResumes(list)
-        setSaved(JSON.stringify({ name: title, content: selectContent(available, choices) }))
+        setSaved(JSON.stringify({ name: title, content: selectContent(available, choices), styles: customStyles }))
         setLoadedId(resumeId)
         setLoadError('')
         setMessage('')
@@ -57,7 +66,10 @@ function ResumeBuilder() {
     return () => controller.abort()
   }, [resumeId, reload])
 
-  const content = useMemo(() => data && selection ? selectContent(data, selection) : null, [data, selection])
+  const content = useMemo(() => data && selection ? { 
+    ...selectContent(data, selection),
+    styles
+  } : null, [data, selection, styles])
   const signature = JSON.stringify({ name, content })
   const dirty = !!content && signature !== saved
   const loaded = data && loadedId === resumeId
@@ -77,8 +89,16 @@ function ResumeBuilder() {
     const timer = setTimeout(async () => {
       try {
         const response = await fetch('/api/resumes/preview', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(content), signal: controller.signal
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            ...selectContent(data, selection), 
+            styles: {
+              ...styles,
+              sectionOrder: styles.sectionOrder || ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments']
+            }
+          }), 
+          signal: controller.signal
         })
         if (!response.ok) throw new Error((await response.json()).error || 'Could not build the preview.')
         const blob = await response.blob()
@@ -88,7 +108,7 @@ function ResumeBuilder() {
       } catch (error) {
         if (!controller.signal.aborted) setError(error.message)
       }
-    }, 500)
+    }, 800)
     return () => {
       clearTimeout(timer)
       controller.abort()
@@ -106,6 +126,22 @@ function ResumeBuilder() {
     setMessage('')
     setData(current => ({ ...current, [key]: id ? current[key].map(item => item.id === id ? { ...item, [field]: value } : item) : { ...current[key], [field]: value } }))
   }
+
+  const moveSection =(index, direction) => {
+    const order = [...(styles.sectionOrder || ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments'])]
+    const newOrder = [...order]
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    
+    if (targetIndex < 0 || targetIndex >= order.length) return
+    const temp = newOrder[index]
+    newOrder[index] = newOrder[targetIndex]
+    newOrder[targetIndex] = temp
+    setStyles(prev => ({
+      ...prev,
+      sectionOrder: newOrder
+    }))
+  }
+
   const canLeave = () => !dirty || window.confirm('Discard unsaved changes to this resume?')
   const open = id => {
     if (!canLeave()) return
@@ -120,16 +156,60 @@ function ResumeBuilder() {
     try {
       const result = await request(resumeId && !copy ? `/api/resumes/${resumeId}` : '/api/resumes', {
         method: resumeId && !copy ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: title, content })
-      })
-      setSaved(JSON.stringify({ name: result.name, content }))
-      setName(result.name)
-      setResumes(current => [result, ...current.filter(item => item._id !== result._id)])
-      setMessage('Saved.')
-      if (result._id !== resumeId) setParams({ id: result._id })
-    } catch (error) { setMessage(error.message) } finally { setSaving(false) }
-  }
+        body: JSON.stringify({ name: title, content: { ...content, styles } }) // <-- Explicitly include styles here!
+    })
+    setSaved(JSON.stringify({ name: result.name, content: result.content }))
+    setName(result.name)
+    setResumes(current => [result, ...current.filter(item => item._id !== result._id)])
+    setMessage('Saved.')
+    if (result._id !== resumeId) setParams({ id: result._id })
+  } catch (error) { setMessage(error.message) } finally { setSaving(false) }
+}
+
   const ready = loaded && count > 0 && preview?.content === content
+
+  const renderSectionContent = (key) => {
+    if (key === 'Summary') {
+      return (
+        <section className="section" key={key}>
+          <h2>Professional Summary</h2>
+          {data.professionalSummary?.summary !== undefined ? <>
+            <label className="resume-choice"><input type="checkbox" checked={selection.professionalSummary} onChange={event => { setError(''); setSelection({ ...selection, professionalSummary: event.target.checked }) }} /><span>{data.professionalSummary.summary || 'Summary'}</span></label>
+            {selection.professionalSummary && <details className="resume-edit"><summary>Edit summary</summary><textarea aria-label="Professional summary" value={data.professionalSummary.summary} onChange={event => edit('professionalSummary', 'summary', event.target.value)} /></details>}
+          </> : <p className="empty-bin">Add a summary on your Account page.</p>}
+        </section>
+      )
+    }
+
+    const dataKeyMap = { Education: 'education', Experience: 'workExperience', Projects: 'projects', Activities: 'activities', Skills: 'skills', Accomplishments: 'accomplishments' }
+    const binKey = dataKeyMap[key]
+    if (!binKey) return null
+
+    return (
+      <section className="section" key={key}>
+        <h2>{key === 'Experience' ? 'Experience' : key === 'Accomplishments' ? 'Awards & Certifications' : key}</h2>
+        {entries(data, binKey).map(item => (
+          <div key={item.id}>
+            <label className="resume-choice">
+              <input type="checkbox" checked={selection[binKey].includes(item.id)} onChange={() => change(binKey, item.id)} />
+              <span><strong>{item.schoolName || item.companyName || item.name || item.skill || item.role || 'Untitled entry'}</strong>
+                <small>{[item.role, item.major, item.location, item.date || item.gradYear].filter(Boolean).join(' · ')}</small>
+                {(item.description || item.text) && <small>{item.description || item.text}</small>}
+              </span>
+            </label>
+            {selection[binKey].includes(item.id) && <details className="resume-edit"><summary>Edit for this resume</summary>
+              {Object.entries(item).filter(([field, value]) => field !== 'id' && typeof value === 'string').map(([field, value]) => (
+                <label key={field}>{field.replace(/([A-Z])/g, ' $1')}
+                  <textarea rows={field === 'description' || field === 'text' ? 3 : 1} value={value} onChange={event => edit(binKey, field, event.target.value, item.id)} />
+                </label>
+              ))}
+            </details>}
+          </div>
+        ))}
+        {!entries(data, binKey).length && <p className="empty-bin">No saved entries yet. Add them on your Account page.</p>}
+      </section>
+    )
+  }
 
   return (
     <main className="resume-builder">
@@ -154,49 +234,84 @@ function ResumeBuilder() {
           {resumeId && <button disabled={saving || !name.trim()} onClick={() => save(true)}>Save as copy</button>}
           <span role="status">{message || (dirty ? 'Unsaved changes' : resumeId ? 'Saved' : 'New draft')}</span>
         </div>
+        
+        {/* PDF Customization Toolbar */}
+        <div className="pdf-controls" style={{ margin: '1rem 0', padding: '1rem', background: '#f9f9f9', border: '1px solid #ddd', borderRadius: '6px' }}>
+          <h3>PDF Customization Options</h3>
+          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+            <label>
+              Font Size:
+              <select 
+                value={styles.fontSize} 
+                onChange={(e) => setStyles({ ...styles, fontSize: e.target.value })}
+                style={{ marginLeft: '0.5rem' }}
+              >
+                <option value="9pt">Small</option>
+                <option value="10pt">Standard</option>
+                <option value="11pt">Large</option>
+                <option value="12pt">Extra Large</option>
+              </select>
+            </label>
+
+            <label>
+              Spacing:
+              <select 
+                value={styles.spacing} 
+                onChange={(e) => setStyles({ ...styles, spacing: e.target.value })}
+                style={{ marginLeft: '0.5rem' }}
+              >
+                <option value="compact">Compact</option>
+                <option value="normal">Normal</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
         <div className="builder-layout">
           <fieldset className="builder-selections bin-form" disabled={saving}>
-            <section className="section">
-              <h2>Personal Info</h2>
-              {personalFields.filter(([key]) => data.personalInfo?.[key] !== undefined).map(([key, label]) => (
-                <div key={key}>
-                  <label className="resume-choice"><input type="checkbox" checked={selection.personalInfo.includes(key)} onChange={() => change('personalInfo', key)} /><span><strong>{label}</strong><small>{data.personalInfo[key]}</small></span></label>
-                  {selection.personalInfo.includes(key) && <details className="resume-edit"><summary>Edit {label.toLowerCase()}</summary><input aria-label={label} value={data.personalInfo[key]} onChange={event => edit('personalInfo', key, event.target.value)} /></details>}
-                </div>
-              ))}
-              {!personalFields.some(([key]) => hasText(data.personalInfo?.[key])) && <p className="empty-bin">Add contact details on your Account page.</p>}
-            </section>
-            <section className="section">
-              <h2>Professional Summary</h2>
-              {data.professionalSummary?.summary !== undefined ? <>
-                <label className="resume-choice"><input type="checkbox" checked={selection.professionalSummary} onChange={event => { setError(''); setSelection({ ...selection, professionalSummary: event.target.checked }) }} /><span>{data.professionalSummary.summary || 'Summary'}</span></label>
-                {selection.professionalSummary && <details className="resume-edit"><summary>Edit summary</summary><textarea aria-label="Professional summary" value={data.professionalSummary.summary} onChange={event => edit('professionalSummary', 'summary', event.target.value)} /></details>}
-              </> : <p className="empty-bin">Add a summary on your Account page.</p>}
-            </section>
-            {bins.map(([key, title]) => (
-              <section className="section" key={key}>
-                <h2>{title}</h2>
-                {entries(data, key).map(item => (
-                  <div key={item.id}>
-                    <label className="resume-choice">
-                      <input type="checkbox" checked={selection[key].includes(item.id)} onChange={() => change(key, item.id)} />
-                      <span><strong>{item.schoolName || item.companyName || item.name || item.skill || item.role || 'Untitled entry'}</strong>
-                        <small>{[item.role, item.major, item.location, item.date || item.gradYear].filter(Boolean).join(' · ')}</small>
-                        {(item.description || item.text) && <small>{item.description || item.text}</small>}
-                      </span>
-                    </label>
-                    {selection[key].includes(item.id) && <details className="resume-edit"><summary>Edit for this resume</summary>
-                      {Object.entries(item).filter(([field, value]) => field !== 'id' && typeof value === 'string').map(([field, value]) => (
-                        <label key={field}>{field.replace(/([A-Z])/g, ' $1')}
-                          <textarea rows={field === 'description' || field === 'text' ? 3 : 1} value={value} onChange={event => edit(key, field, event.target.value, item.id)} />
-                        </label>
-                      ))}
-                    </details>}
+            {(styles.sectionOrder || ['Summary', 'Education', 'Experience', 'Projects', 'Activities', 'Skills', 'Accomplishments']).map((sectionKey, index, orderArray) => {
+              const isHidden = (styles.hideSections || []).includes(sectionKey)
+              return (
+                <div key={sectionKey} style={{ position: 'relative', marginBottom: '1rem', opacity: isHidden ? 0.5 : 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', marginBottom: '0.5rem', paddingRight: '0.5rem', zIndex: 2, position: 'relative', alignItems: 'center' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const currentHidden = styles.hiddenSections || []
+                        const newHidden = isHidden 
+                          ? currentHidden.filter(k => k !== sectionKey) 
+                          : [...currentHidden, sectionKey]
+                        setStyles(prev => ({ ...prev, hideSections: newHidden }))
+                      }}
+                      title={isHidden ? "Show section in PDF" : "Hide section from PDF"}
+                      style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', cursor: 'pointer', background: isHidden ? '#ddd' : 'transparent' }}
+                    >
+                      {isHidden ? 'Show' : 'Hide'}
+                    </button>
+                    <button 
+                      type="button" 
+                      disabled={index === 0} 
+                      onClick={() => moveSection(index, 'up')}
+                      title="Move section up"
+                      style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      ↑ Up
+                    </button>
+                    <button 
+                      type="button" 
+                      disabled={index === orderArray.length - 1} 
+                      onClick={() => moveSection(index, 'down')}
+                      title="Move section down"
+                      style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      ↓ Down
+                    </button>
                   </div>
-                ))}
-                {!entries(data, key).length && <p className="empty-bin">No saved entries yet. Add them on your Account page.</p>}
-              </section>
-            ))}
+                  {renderSectionContent(sectionKey)}
+                </div>
+              )
+            })}
           </fieldset>
           <section className="preview-panel" aria-label="Resume preview">
             <div className="preview-toolbar">
