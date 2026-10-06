@@ -27,8 +27,14 @@ function App() {
   }, [])
 
   const handleLogout = async () => {
-    await fetch('/api/logout', { method: 'POST' })
-    setUser(null)
+    try {
+      await fetch('/api/logout', { method: 'POST'})
+    } catch (error) {
+      console.error('Logout failed', error)
+    } finally {
+      setUser(null)
+      window.location.href = '/'
+    }
   }
 
   if (!checkedAuth) {
