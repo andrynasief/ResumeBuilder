@@ -41,4 +41,4 @@ Andry Nasief focused more on PDF creation, the resume preview, and CSS. Our orig
 
 ## 6. Our project video
 
-video link
+https://wpi0-my.sharepoint.com/:v:/g/personal/apeterson1_wpi_edu/IQBnasPXqoDYSZER1-mciYq2AdTjF8aquMll1H0OsrM5uTU?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=uI8lL4
